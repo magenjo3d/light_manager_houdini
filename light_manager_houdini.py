@@ -30,6 +30,8 @@ try:
 except ImportError:
     HOU_AVAILABLE = False
 
+ROP_MANAGER_PATH = r"/users/miag/Public/miag_rop_manager_module.py"
+
 
 # ==================== Stylesheet ====================
 
@@ -1652,7 +1654,7 @@ class LightManagerTab(QWidget):
     def _open_render_settings(self):
         """Open the Houdini Render Settings / Arnold ROP."""
         import runpy
-        runpy.run_path(r"/users/miag/Public/miag_rop_manager_module.py")
+        runpy.run_path(ROP_MANAGER_PATH)
 
 
     def _open_node_editor(self):
