@@ -41,7 +41,7 @@ try:
 except ImportError:
     HOU_AVAILABLE = False
 
-ROP_MANAGER_PATH = r"/users/miag/Public/miag_rop_manager_module.py"
+ROP_MANAGER_PATH = r"C:\Users\Mike\Desktop\Projects\rnd\houdini-rop-manager\light_manager_houdini\rop_manager.py"
 
 
 # ==================== Stylesheet ====================
