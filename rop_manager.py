@@ -1,12 +1,23 @@
-from PySide2.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QComboBox, QListWidget,
-    QMessageBox, QDoubleSpinBox, QSpinBox,
-    QSlider, QCheckBox, QLineEdit, QScrollArea, QColorDialog,
-    QFrame, QGroupBox, QDialogButtonBox, QStyle, QDialog, QButtonGroup,
-)
-from PySide2.QtCore import Qt, Signal, QEvent, QSize, QLocale
-from PySide2.QtGui import QFont, QColor, QIcon
+try:
+    from PySide6.QtWidgets import (
+        QApplication, QWidget, QVBoxLayout, QHBoxLayout,
+        QLabel, QPushButton, QComboBox, QListWidget,
+        QMessageBox, QDoubleSpinBox, QSpinBox,
+        QSlider, QCheckBox, QLineEdit, QScrollArea, QColorDialog,
+        QFrame, QGroupBox, QDialogButtonBox, QStyle, QDialog, QButtonGroup,
+    )
+    from PySide6.QtCore import Qt, Signal, QEvent, QSize, QLocale
+    from PySide6.QtGui import QFont, QColor, QIcon
+except ImportError:
+    from PySide2.QtWidgets import (
+        QApplication, QWidget, QVBoxLayout, QHBoxLayout,
+        QLabel, QPushButton, QComboBox, QListWidget,
+        QMessageBox, QDoubleSpinBox, QSpinBox,
+        QSlider, QCheckBox, QLineEdit, QScrollArea, QColorDialog,
+        QFrame, QGroupBox, QDialogButtonBox, QStyle, QDialog, QButtonGroup,
+    )
+    from PySide2.QtCore import Qt, Signal, QEvent, QSize, QLocale
+    from PySide2.QtGui import QFont, QColor, QIcon
 
 import hou
 
@@ -109,7 +120,7 @@ class ROPManager(QWidget):
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
 
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.Accepted:
             return None, None
 
         name = name_field.text().strip()

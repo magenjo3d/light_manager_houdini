@@ -13,16 +13,27 @@ import tempfile
 from pathlib import Path
 from datetime import datetime
 
-# Houdini 20 ships with PySide2 (Python 3.9)
-from PySide2.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QComboBox, QListWidget,
-    QMessageBox, QDoubleSpinBox, QSpinBox,
-    QSlider, QCheckBox, QLineEdit, QScrollArea, QColorDialog,
-    QFrame, QGroupBox, QDialogButtonBox, QStyle,
-)
-from PySide2.QtCore import Qt, Signal, QEvent, QSize, QLocale
-from PySide2.QtGui import QFont, QColor, QIcon, QBrush
+# Prefer PySide6, but keep PySide2 fallback for Houdini environments.
+try:
+    from PySide6.QtWidgets import (
+        QApplication, QWidget, QVBoxLayout, QHBoxLayout,
+        QLabel, QPushButton, QComboBox, QListWidget,
+        QMessageBox, QDoubleSpinBox, QSpinBox,
+        QSlider, QCheckBox, QLineEdit, QScrollArea, QColorDialog,
+        QFrame, QGroupBox, QDialogButtonBox, QStyle,
+    )
+    from PySide6.QtCore import Qt, Signal, QEvent, QSize, QLocale
+    from PySide6.QtGui import QFont, QColor, QIcon, QBrush
+except ImportError:
+    from PySide2.QtWidgets import (
+        QApplication, QWidget, QVBoxLayout, QHBoxLayout,
+        QLabel, QPushButton, QComboBox, QListWidget,
+        QMessageBox, QDoubleSpinBox, QSpinBox,
+        QSlider, QCheckBox, QLineEdit, QScrollArea, QColorDialog,
+        QFrame, QGroupBox, QDialogButtonBox, QStyle,
+    )
+    from PySide2.QtCore import Qt, Signal, QEvent, QSize, QLocale
+    from PySide2.QtGui import QFont, QColor, QIcon, QBrush
 
 try:
     import hou
@@ -290,7 +301,7 @@ class ColorButton(QPushButton):
             for button in button_box.buttons():
                 button.setStyleSheet(fixed_btn_style)
 
-        if dialog.exec_() == QColorDialog.Accepted:
+        if dialog.exec() == QColorDialog.Accepted:
             color = dialog.selectedColor()
             self._color = (color.redF(), color.greenF(), color.blueF())
             self._update_style()
