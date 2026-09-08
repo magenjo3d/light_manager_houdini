@@ -598,7 +598,8 @@ class LightManagerTab(QWidget):
         utils_btns = [
             ("ROP Create",     "ROP_arnold",          self._create_arnold_rop),
             ("ROP manager", "BUTTONS_render",       self._open_render_settings),
-            ("Isolate Texture", "BUTTONS_texture_only_show_groups.svg",       self._isolate_render_view)
+            ("Isolate Texture", "BUTTONS_texture_only_show_groups.svg",       self._isolate_render_view),
+            ("Help", "BUTTONS_help", self._show_light_manager_help),
         ]
         for label, icon_name, func in utils_btns:
             btn = QPushButton()
@@ -1732,6 +1733,34 @@ class LightManagerTab(QWidget):
                     self._set_parm_tuple(node, pname, value)
                 else:
                     self._set_parm(node, pname, value)
+
+    def _show_light_manager_help(self):
+        """Display a quick legend with the main Light Manager workflows."""
+        legend_text = (
+            "<b>Light Manager - UI Guide (Top to Bottom)</b><br><br>"
+            "<b>1) Utils Shelf</b><br>"
+            "- Shortcuts for light creation.<br>"
+            "- Utils buttons provides quick access to Arnold ROP creation, ROP manager tool, and Isolate Textures button for look development.<br><br>"
+            "<b>2) Light List Toolbar (left side)</b><br>"
+            "- Rrefresh, validate, isolate lights, and monitor all lights in scene.<br><br>"
+            "<b>3) Snapshot Buttons</b><br>"
+            "- Select which lights you want to work on, then save/load states when needed.<br>"
+            "- Snapshot button stores the selected light settings to a temp config file, and Load restores the exact configuration previously saved.<br><br>"
+            "<b>4) Selection Row (right side)</b><br>"
+            "- Quickly select all lights or find lights by name.<br><br>"
+            "<b>5) Light Populator</b><br>"
+            "- Scatter Arnold lights across selected objects, using each object's transform as a starting point.<br>"
+            "- Optional toggles let you select the light type, parent to source objects, and add helper locator controls.<br><br>"
+            "<b>6) Light Attributes</b><br>"
+            "- Adjust attributes, load textures and set animation keys for selected lights at the same time.<br>"
+            "- Randomize values like intensity or color for quick variations and look dev exploration.<br><br>"
+            "<b>7) Bottom Actions</b><br>"
+            "- Run global reset on the current light selection.<br>"
+            "- Set current UI attribute values to the selected lights.<br><br>"
+            "<b>Important</b><br>"
+            "- Most actions apply to the lights currently selected in the list or viewport."
+        )
+        QMessageBox.information(self, "Light Manager Help", legend_text)
 
 
 # ==================== Main Window ====================
