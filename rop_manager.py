@@ -22,6 +22,7 @@ except ImportError:
     from PySide2.QtGui import QFont, QColor, QIcon
 
 import hou
+import fnmatch
 
 
 class ROPManager(QWidget):
@@ -177,12 +178,12 @@ class ROPManager(QWidget):
             entry_layout.addWidget(swatch)
             entry_layout.addWidget(txt)
             legend_layout.addWidget(entry)
-
+        add_entry("Candidate", self.USED_LINK_COLORS["candidate"])
         add_entry("Forced", self.USED_LINK_COLORS["force"])
         add_entry("Phantom", self.USED_LINK_COLORS["phantom"])
         add_entry("Matte", self.USED_LINK_COLORS["matte"])
         add_entry("Exclude", self.USED_LINK_COLORS["exclude"])
-        add_entry("Candidate", self.USED_LINK_COLORS["candidate"])
+
         add_entry("Unused", self.UNUSED_COLOR)
         legend_layout.addStretch()
         return legend_widget
@@ -271,9 +272,29 @@ class ROPManager(QWidget):
         if not rop_node:
             return
 
-        selected_paths = [node.path() for node in hou.selectedNodes()]
-        if not selected_paths:
+        selected_nodes = list(hou.selectedNodes())
+        if not selected_nodes:
             QMessageBox.information(self, "No Selection", "Select one or more Houdini nodes first.")
+            return
+
+        is_light_property = self._is_light_property(parm_names)
+        valid_nodes = []
+        skipped_nodes = []
+        for node in selected_nodes:
+            node_is_light = self._is_light_node(node)
+            if is_light_property and not node_is_light:
+                skipped_nodes.append(node.path())
+                continue
+            if (not is_light_property) and node_is_light:
+                skipped_nodes.append(node.path())
+                continue
+            valid_nodes.append(node)
+
+        if not valid_nodes:
+            if is_light_property:
+                QMessageBox.information(self, "Invalid Selection", "This property only accepts light nodes.")
+            else:
+                QMessageBox.information(self, "Invalid Selection", "This property only accepts object nodes (non-lights).")
             return
 
         parm = self._first_existing_parm(rop_node, parm_names)
@@ -283,12 +304,19 @@ class ROPManager(QWidget):
 
         tokens = self._split_node_paths(self._read_parm_as_string(parm))
         merged = list(tokens)
-        for path in selected_paths:
+        for path in [node.path() for node in valid_nodes]:
             if path not in merged:
                 merged.append(path)
 
         parm.set(" ".join(merged))
         self.update_selected_rop_details(rop_node)
+
+        if skipped_nodes:
+            if is_light_property:
+                message = "Skipped non-light nodes:\n" + "\n".join(skipped_nodes)
+            else:
+                message = "Skipped light nodes in object property:\n" + "\n".join(skipped_nodes)
+            QMessageBox.information(self, "Some Nodes Skipped", message)
 
     def _remove_selected_nodes_from_property(self, parm_names):
         rop_node = self._current_rop_node
@@ -353,14 +381,53 @@ class ROPManager(QWidget):
             except Exception:
                 return parm.unexpandedString()
 
+    def _is_light_property(self, parm_names):
+        return any("light" in str(parm_name).lower() for parm_name in (parm_names or []))
+
+    def _is_light_node(self, node):
+        if not node:
+            return False
+
+        try:
+            type_name = node.type().name().lower()
+        except Exception:
+            type_name = ""
+
+        if "light" in type_name:
+            return True
+
+        # Common Houdini /obj light node names that do not always contain "light".
+        if type_name in {"hlight", "arnold_light", "octane_light", "rslight"}:
+            return True
+
+        return False
+
+    def _node_allowed_for_property(self, node, parm_names):
+        node_is_light = self._is_light_node(node)
+        if self._is_light_property(parm_names):
+            return node_is_light
+        return not node_is_light
+
     def _split_node_paths(self, raw_value):
         if raw_value in (None, "", "-"):
             return []
         return [token for token in str(raw_value).split() if token]
 
     def _expand_token_to_nodes(self, token):
-        if not token or token.startswith("^"):
+        if not token:
             return []
+
+        token = token.strip()
+        if token.startswith("^"):
+            token = token[1:].strip()
+        if not token:
+            return []
+
+        if token == "*":
+            root = hou.node("/")
+            if not root:
+                return []
+            return list(root.allSubChildren())
 
         direct = hou.node(token)
         if direct:
@@ -381,6 +448,20 @@ class ROPManager(QWidget):
             if resolved:
                 break
 
+        # Fallback: wildcard-match against node path or node name so patterns like
+        # "*" and "*_key" are considered across the scene graph.
+        if ("*" in token or "?" in token or "[" in token) and not resolved:
+            root = hou.node("/")
+            if root:
+                for node in root.allSubChildren():
+                    try:
+                        node_path = node.path()
+                        node_name = node.name()
+                    except Exception:
+                        continue
+                    if fnmatch.fnmatch(node_path, token) or fnmatch.fnmatch(node_name, token):
+                        resolved.append(node)
+
         return resolved
 
     def _save_node_original_color(self, node):
@@ -400,16 +481,18 @@ class ROPManager(QWidget):
         if not parm:
             return []
 
-        nodes = []
-        seen = set()
+        nodes_by_path = {}
         for token in self._split_node_paths(self._read_parm_as_string(parm)):
+            is_exclusion = token.startswith("^")
             for linked_node in self._expand_token_to_nodes(token):
-                node_path = linked_node.path()
-                if node_path in seen:
+                if not self._node_allowed_for_property(linked_node, parm_names):
                     continue
-                seen.add(node_path)
-                nodes.append(linked_node)
-        return nodes
+                node_path = linked_node.path()
+                if is_exclusion:
+                    nodes_by_path.pop(node_path, None)
+                else:
+                    nodes_by_path[node_path] = linked_node
+        return list(nodes_by_path.values())
 
     def _apply_selection_color_scheme(self, rop_node):
         if not rop_node:
@@ -417,7 +500,6 @@ class ROPManager(QWidget):
             return
 
         selected_rop_path = rop_node.path()
-
         force_nodes = []
         force_nodes += self._extract_linked_nodes(rop_node, ["objects", "forceobject", "forceobjects", "forcedobjects", "forced_objects", "ar_force_objects"])
         force_nodes += self._extract_linked_nodes(rop_node, ["forcelights", "forcedlights", "forced_lights", "ar_force_lights"])
