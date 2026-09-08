@@ -614,6 +614,15 @@ class ROPManager(QWidget):
         if out_parm:
             self._add_detail_row("Output", out_parm, out_val)
 
+        camera_parm, camera_val = self._first_existing_parm_value(
+            rop_node,
+            ["camera", "rendercamera", "cam", "currentcamera", "override_camera"],
+        )
+        if camera_parm:
+            self._add_detail_row("Output", "Camera", camera_val)
+        else:
+            self._add_detail_row("Output", "Camera", "-")
+
         object_links = [
             ("Candidate Objects", ["candobjects", "vobject", "candidateobjects", "candidate_objects", "ar_objects"]),
             ("Forced Objects", ["objects", "forceobject", "forceobjects", "forcedobjects", "forced_objects", "ar_force_objects"]),
